@@ -6,6 +6,8 @@ import (
 	"strings"
 	"path/filepath"
 	"strconv"
+	"archive/zip"
+	"io"
 )
 
 
@@ -36,12 +38,12 @@ func listFile(dirname string) []string {
 func recvCommand() string {
 	var command string
 	fmt.Println("操作命令：")
-	fmt.Print("\t1-查找\n\t2-替换\n\t3-增加编号\n\t4-增加前缀\n\t5-增加后缀\n\t0-退出\n\n")
+	fmt.Print("\t1-查找\n\t2-替换\n\t3-增加编号\n\t4-增加前缀\n\t5-增加后缀\n\t6-加密文件打包\n\t0-退出\n\n")
 	for {
 		fmt.Print("请输入命令编号(0-5)：")
 		fmt.Scanln(&command)
 		switch command {
-		case "1", "2", "3", "4", "5", "0":
+		case "1", "2", "3", "4", "5", "6", "0":
 			return command
 		default:
 			fmt.Println("输入的编号有误，请重新输入！")
@@ -120,6 +122,66 @@ func addSuffix(files []string, suffix string, path string) {
 			fmt.Println(err)
 		}
 	}
+}
+
+//加密文件打包
+func pwdFileZip(files []string, path string, zip_name string) {
+	//将不以Lc_开头的文件删除
+	for _, f_name := range files {
+		if !strings.HasPrefix(f_name, "Lc_") {
+			err := os.Remove(filepath.Join(path, f_name))
+			if err != nil {
+				fmt.Printf("文件<%v>删除失败：%v\n", f_name, err)
+			}
+		}
+	}
+	//需要打包的文件名称
+	var need_zip_file []string
+	//将Lc_开头的文件重命名
+	for _, f_name := range files {
+		if strings.HasPrefix(f_name, "Lc_") {
+			new_f_name := strings.TrimPrefix(f_name, "Lc_")
+			need_zip_file = append(need_zip_file, new_f_name)
+			err := os.Rename(filepath.Join(path, f_name), filepath.Join(path, new_f_name))
+			if err != nil {
+				fmt.Printf("文件<%v>重命名失败：%v\n", f_name, err)
+			}
+		}
+	}
+	
+	//压缩操作
+	zip_name = zip_name + ".zip"
+	zipfile, err := os.Create(filepath.Join(path, zip_name))
+	if err != nil {
+		fmt.Printf("zip包创建失败：%v\n", err)
+		return
+	}
+	defer zipfile.Close()
+	
+	zipWriter := zip.NewWriter(zipfile)
+	defer zipWriter.Close()
+	
+	for _, f_name := range need_zip_file {
+		w, err := zipWriter.Create(f_name)
+		if err != nil {
+			fmt.Printf("文件<%v>创建压缩文件失败：%v\n", f_name, err)
+			return
+		}
+		//打开待压缩文件
+		sc_f, err := os.Open(filepath.Join(path, f_name))
+		if err != nil {
+			fmt.Printf("打开待压缩文件<%v>失败：%v\n", f_name, err)
+			return
+		}
+		defer sc_f.Close()
+		
+		_, err = io.Copy(w, sc_f)
+		if err != nil {
+			fmt.Printf("文件<%v>压缩失败：%v\n", f_name, err)
+			return
+		}
+	}
+	fmt.Println("文件压缩完毕：", filepath.Join(path, zip_name))
 }
 
 
@@ -228,6 +290,15 @@ func main() {
 					addSuffix(op_files, suffix, path)
 					listFile(path)
 					end_loop = true
+				case "6":
+					var zip_file_name string
+					fmt.Print("请输入zip包名称：")
+					fmt.Scanln(&zip_file_name)
+					if zip_file_name == "" {
+						fmt.Println("输入为空！")
+						continue
+					}
+					pwdFileZip(op_files, path, zip_file_name)
 				case "0":
 					fmt.Println("Bye bye...")
 					return

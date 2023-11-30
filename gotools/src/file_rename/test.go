@@ -1,30 +1,26 @@
 package main
 import (
 	"fmt"
-	"strings"
+	_"strings"
 	_"bufio"
-	_"os"
+	"os"
+	"io/ioutil"
 )
 
 
 func main() {
-	s := "我是文件名.txt"
-	r := strings.Replace(s, "我是", "", -1)
-	fmt.Println(r)
-
-	var name string
-	fmt.Printf("请输入：")
-	fmt.Scanln(&name)
-	fmt.Printf("%v, %T\n", name, name)
-	fmt.Println("========", len(name))
-	r2 := strings.Replace(s, "我是", name, -1)
-	fmt.Println("==============", r2)
-
-
-	// var gender string
-	// fmt.Printf("输入吧：")
-	// sc := bufio.NewReader(os.Stdin)
-	// res, _, _ := sc.ReadLine()
-	// fmt.Printf("%v, %T\n", string(res), string(res))
-	// fmt.Println("========", len(res))
+	s := "E:\\archer.wiki"
+	res, err := ioutil.ReadDir(s)
+	if err != nil {
+		fmt.Println("读取目录失败，获取文件列表失败：", err)
+		return
+	}
+	for _, v := range res {
+		if !v.IsDir() {
+			fmt.Println(v.Name())
+		}
+	}
+	r1 := "E:\\archer.wiki\\aaa\\aa.txt"
+	r2 := "E:\\archer.wiki\\aaa\\lc_aa.txt"
+	os.Rename(r2, r1)
 }
